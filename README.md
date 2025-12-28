@@ -1,34 +1,108 @@
-# Dyad
+# Dyad with OpenCode 🚀
 
-Dyad is a local, open-source AI app builder. It's fast, private, and fully under your control — like Lovable, v0, or Bolt, but running right on your machine.
+**This is a feature-rich fork of [Dyad](https://dyad.sh/) that adds native support for local AI agents and CLIs.**
 
-[![Image](https://github.com/user-attachments/assets/f6c83dfc-6ffd-4d32-93dd-4b9c46d17790)](https://dyad.sh/)
+While the original Dyad focuses on cloud models and basic local inference (Ollama), this version unlocks the power of advanced local tools:
 
-More info at: [https://dyad.sh/](https://dyad.sh/)
+- **OpenCode Interpreter**: Run code-interpreting agents locally.
+- **Google Gemini CLI**: Use Gemini 1.5/Pro models directly from your terminal integration.
+- **Letta Agents**: Run stateful, memory-aware agents locally.
 
-## 🚀 Features
+> **Note**: This is a community fork. For the official Dyad project, visit [dyad.sh](https://dyad.sh/).
+
+## 🌟 New Features in This Fork
+
+### 1. OpenCode Integration
+
+Use [OpenCode](https://opencode.ai) directly within Dyad.
+
+- **Code Execution**: The model can write and run code to solve complex tasks.
+- **Local Privacy**: All code runs in your local environment.
+- **No API Keys Needed**: Uses your local OpenCode installation.
+
+### 2. Google Gemini CLI Support
+
+Connects to your local [Gemini CLI](https://github.com/google-gemini/gemini-cli).
+
+- **Access Latest Models**: Use Gemini 1.5 Pro, Flash, and more.
+- **Free Tier**: Leverage the generous free tier of Gemini via the CLI.
+
+### 3. Letta Agent Support
+
+Integrates [Letta](https://github.com/letta-ai/letta-code) (formerly MemGPT-like agents).
+
+- **Long-term Memory**: Agents that remember context across sessions.
+- **Stateful Interactions**: Perfect for complex, multi-turn coding tasks.
+
+---
+
+## 🔌 Setup Guide
+
+To use these new features, simply install the CLI tools you want to use. Dyad will automatically detect them.
+
+### 🛠️ Setting up OpenCode
+
+1. Download OpenCode from [opencode.ai](https://opencode.ai).
+2. Ensure `opencode` is in your system PATH.
+3. Verify it works in your terminal:
+   ```bash
+   opencode --version
+   ```
+
+### 🛠️ Setting up Gemini CLI
+
+1. Install the CLI tool:
+   ```bash
+   pip install gemini-cli  # or follow official instructions
+   ```
+2. Authenticate with Google:
+   ```bash
+   gemini auth login
+   ```
+
+### 🛠️ Setting up Letta
+
+1. Install Letta:
+   ```bash
+   pip install letta
+   ```
+2. Start the Letta server or ensure the CLI is accessible.
+
+---
+
+## 📦 Download & Run
+
+Since this is a fork, you'll likely want to build it yourself or download releases from this repository (once available).
+
+```bash
+# Clone this repo
+git clone https://github.com/rayngnpc/dyad-with-opencode.git
+
+# Install dependencies
+npm install
+
+# Run locally
+npm run dev
+```
+
+---
+
+## Original Dyad Features
 
 - ⚡️ **Local**: Fast, private and no lock-in.
 - 🛠 **Bring your own keys**: Use your own AI API keys — no vendor lock-in.
 - 🖥️ **Cross-platform**: Easy to run on Mac or Windows.
 
-## 📦 Download
-
-No sign-up required. Just download and go.
-
-### [👉 Download for your platform](https://www.dyad.sh/#download)
-
 ## 🤝 Community
 
-Join our growing community of AI app builders on **Reddit**: [r/dyadbuilders](https://www.reddit.com/r/dyadbuilders/) - share your projects and get help from the community!
+This fork is maintained by the community.
 
-## 🛠️ Contributing
-
-**Dyad** is open-source (Apache 2.0 licensed).
-
-If you're interested in contributing to dyad, please read our [contributing](./CONTRIBUTING.md) doc.
+- Report issues in the [Issues tab](https://github.com/rayngnpc/dyad-with-opencode/issues).
+- For the official Dyad community: [r/dyadbuilders](https://www.reddit.com/r/dyadbuilders/).
 
 ## License
 
-- All the code in this repo outside of `src/pro` is open-source and licensed under Apache 2.0 - see [LICENSE](./LICENSE).
-- All the code in this repo within `src/pro` is fair-source and licensed under [Functional Source License 1.1 Apache 2.0](https://fsl.software/) - see [LICENSE](./src/pro/LICENSE).
+- Code outside `src/pro`: Apache 2.0 (Open Source)
+- Code inside `src/pro`: Functional Source License 1.1 (Fair Source)
+
+See [LICENSE](./LICENSE) for details.
