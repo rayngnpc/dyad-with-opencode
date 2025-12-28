@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import type { LanguageModelV2 } from "@ai-sdk/provider";
 import log from "electron-log";
-import { getGeminiCliPath, isGeminiCliAvailable } from "../handlers/local_model_gemini_cli_handler";
+import {
+  getGeminiCliPath,
+  isGeminiCliAvailable,
+} from "../handlers/local_model_gemini_cli_handler";
 
 const logger = log.scope("gemini_cli_provider");
 
@@ -59,7 +62,12 @@ interface GeminiStreamToolResult {
   error?: string;
 }
 
-type GeminiStreamEvent = GeminiStreamInit | GeminiStreamMessage | GeminiStreamResult | GeminiStreamToolUse | GeminiStreamToolResult;
+type GeminiStreamEvent =
+  | GeminiStreamInit
+  | GeminiStreamMessage
+  | GeminiStreamResult
+  | GeminiStreamToolUse
+  | GeminiStreamToolResult;
 
 // Module-level state for the current working directory
 // This is set before each chat request to point to the app's directory
@@ -93,7 +101,9 @@ export function setGeminiCliSessionKey(key: string | undefined): void {
   if (key) {
     // Check if this session has been initialized (has at least one message)
     shouldResumeSession = initializedSessions.has(key);
-    logger.info(`Gemini CLI session key set to: ${key}, shouldResume: ${shouldResumeSession}`);
+    logger.info(
+      `Gemini CLI session key set to: ${key}, shouldResume: ${shouldResumeSession}`,
+    );
   } else {
     shouldResumeSession = false;
   }
@@ -105,7 +115,9 @@ export function setGeminiCliSessionKey(key: string | undefined): void {
 function markSessionInitialized(): void {
   if (currentSessionKey) {
     initializedSessions.add(currentSessionKey);
-    logger.info(`Marked Gemini CLI session as initialized: ${currentSessionKey}`);
+    logger.info(
+      `Marked Gemini CLI session as initialized: ${currentSessionKey}`,
+    );
   }
 }
 
@@ -131,11 +143,11 @@ export type GeminiCliProvider = (modelId: string) => LanguageModelV2;
  * This allows Gemini CLI to be used with the Vercel AI SDK streaming API
  */
 export function createGeminiCliProvider(
-  options?: GeminiCliProviderOptions
+  options?: GeminiCliProviderOptions,
 ): GeminiCliProvider {
   if (!isGeminiCliAvailable()) {
     throw new Error(
-      "Gemini CLI is not installed. Install it from: https://github.com/google-gemini/gemini-cli"
+      "Gemini CLI is not installed. Install it from: https://github.com/google-gemini/gemini-cli",
     );
   }
 
@@ -147,18 +159,19 @@ export function createGeminiCliProvider(
       provider: "gemini-cli",
       modelId: effectiveModel,
       supportedUrls: {},
-      
+
       async doGenerate(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         // Extract the user message from the prompt
         const userMessage = extractUserMessage(prompt);
-        
+
         return new Promise((resolve, reject) => {
           const geminiPath = getGeminiCliPath();
           const args = [
-            "--output-format", "json",
-            "--yolo",  // Enable tool execution without prompts
+            "--output-format",
+            "json",
+            "--yolo", // Enable tool execution without prompts
           ];
 
           // Add resume flag if we should continue the session
@@ -173,7 +186,9 @@ export function createGeminiCliProvider(
             args.push("--model", effectiveModel);
           }
 
-          logger.info(`Gemini CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+          logger.info(
+            `Gemini CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+          );
 
           const geminiProcess = spawn(geminiPath, args, {
             stdio: ["ignore", "pipe", "pipe"],
@@ -206,12 +221,16 @@ export function createGeminiCliProvider(
 
             try {
               // Parse the JSON response
-              const lines = output.split("\n").filter(line => {
+              const lines = output.split("\n").filter((line) => {
                 const trimmed = line.trim();
-                return trimmed && !trimmed.startsWith("[STARTUP]") && !trimmed.startsWith("Loaded cached");
+                return (
+                  trimmed &&
+                  !trimmed.startsWith("[STARTUP]") &&
+                  !trimmed.startsWith("Loaded cached")
+                );
               });
-              
-              const jsonLine = lines.find(line => {
+
+              const jsonLine = lines.find((line) => {
                 try {
                   JSON.parse(line);
                   return true;
@@ -226,8 +245,12 @@ export function createGeminiCliProvider(
                   text: response.response || "",
                   finishReason: "stop",
                   usage: {
-                    promptTokens: response.stats?.models?.[effectiveModel]?.tokens?.prompt || 0,
-                    completionTokens: response.stats?.models?.[effectiveModel]?.tokens?.candidates || 0,
+                    promptTokens:
+                      response.stats?.models?.[effectiveModel]?.tokens
+                        ?.prompt || 0,
+                    completionTokens:
+                      response.stats?.models?.[effectiveModel]?.tokens
+                        ?.candidates || 0,
                   },
                   rawCall: { rawPrompt: userMessage, rawSettings: {} },
                   rawResponse: { headers: {} },
@@ -244,14 +267,15 @@ export function createGeminiCliProvider(
 
       async doStream(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         // Extract the user message from the prompt
         const userMessage = extractUserMessage(prompt);
-        
+
         const geminiPath = getGeminiCliPath();
         const args = [
-          "--output-format", "stream-json",
-          "--yolo",  // Enable tool execution without prompts
+          "--output-format",
+          "stream-json",
+          "--yolo", // Enable tool execution without prompts
         ];
 
         // Add resume flag if we should continue the session
@@ -266,7 +290,9 @@ export function createGeminiCliProvider(
           args.push("--model", effectiveModel);
         }
 
-        logger.info(`Gemini CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+        logger.info(
+          `Gemini CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+        );
 
         const geminiProcess = spawn(geminiPath, args, {
           stdio: ["ignore", "pipe", "pipe"],
@@ -288,29 +314,47 @@ export function createGeminiCliProvider(
         // Create a readable stream that yields chunks
         const stream = new ReadableStream({
           start(controller) {
+            // Send "Thinking..." indicator immediately so user sees activity
+            controller.enqueue({
+              type: "text-start",
+              id: textId,
+            });
+            textStartSent = true;
+            controller.enqueue({
+              type: "text-delta",
+              id: textId,
+              delta: "*Thinking...*\n\n",
+            });
+
             geminiProcess.stdout.on("data", (data: Buffer) => {
               buffer += data.toString();
-              
+
               const lines = buffer.split("\n");
               buffer = lines.pop() || "";
 
               for (const line of lines) {
                 const trimmedLine = line.trim();
-                if (!trimmedLine || trimmedLine.startsWith("[STARTUP]") || trimmedLine.startsWith("Loaded cached")) {
+                if (
+                  !trimmedLine ||
+                  trimmedLine.startsWith("[STARTUP]") ||
+                  trimmedLine.startsWith("Loaded cached")
+                ) {
                   continue;
                 }
 
                 try {
                   const event = JSON.parse(trimmedLine) as GeminiStreamEvent;
-                  
+
                   // Handle init event - session has started
                   if (event.type === "init") {
-                    logger.info(`Gemini CLI session initialized: ${event.session_id}`);
+                    logger.info(
+                      `Gemini CLI session initialized: ${event.session_id}`,
+                    );
                   }
-                  
+
                   if (event.type === "message" && event.role === "assistant") {
                     const content = event.content;
-                    
+
                     // Send text-start on first text
                     if (!textStartSent) {
                       controller.enqueue({
@@ -319,13 +363,13 @@ export function createGeminiCliProvider(
                       });
                       textStartSent = true;
                     }
-                    
+
                     if (event.delta) {
                       // Delta mode: content is the full accumulated response
                       // Calculate the actual delta
                       const deltaText = content.slice(lastContent.length);
                       lastContent = content;
-                      
+
                       if (deltaText) {
                         controller.enqueue({
                           type: "text-delta",
@@ -359,7 +403,8 @@ export function createGeminiCliProvider(
                     logger.info(`Gemini CLI tool_use: ${event.tool_name}`);
                   } else if (event.type === "tool_result") {
                     // Show tool result as text
-                    const statusIcon = event.status === "success" ? "completed" : "failed";
+                    const statusIcon =
+                      event.status === "success" ? "completed" : "failed";
                     const resultMessage = `**Tool ${statusIcon}**\n---\n\n`;
                     controller.enqueue({
                       type: "text-delta",
@@ -372,9 +417,11 @@ export function createGeminiCliProvider(
                     if (event.status === "success") {
                       markSessionInitialized();
                     }
-                    
+
                     if (event.status === "error") {
-                      controller.error(new Error("Gemini CLI returned an error"));
+                      controller.error(
+                        new Error("Gemini CLI returned an error"),
+                      );
                       streamClosed = true;
                     } else {
                       // Send text-end if we sent text-start
@@ -400,14 +447,19 @@ export function createGeminiCliProvider(
                   }
                 } catch {
                   // Not valid JSON, skip
-                  logger.debug(`Non-JSON from Gemini CLI: ${trimmedLine.slice(0, 100)}`);
+                  logger.debug(
+                    `Non-JSON from Gemini CLI: ${trimmedLine.slice(0, 100)}`,
+                  );
                 }
               }
             });
 
             geminiProcess.stderr.on("data", (data: Buffer) => {
               const text = data.toString();
-              if (!text.includes("[STARTUP]") && !text.includes("Loaded cached")) {
+              if (
+                !text.includes("[STARTUP]") &&
+                !text.includes("Loaded cached")
+              ) {
                 logger.warn(`Gemini CLI stderr: ${text}`);
               }
             });
@@ -422,7 +474,9 @@ export function createGeminiCliProvider(
             geminiProcess.on("close", (code) => {
               if (code !== 0 && code !== null && !streamClosed) {
                 streamClosed = true;
-                controller.error(new Error(`Gemini CLI exited with code ${code}`));
+                controller.error(
+                  new Error(`Gemini CLI exited with code ${code}`),
+                );
                 return;
               }
               // Process remaining buffer
@@ -443,7 +497,8 @@ export function createGeminiCliProvider(
                     }
                     controller.enqueue({
                       type: "finish",
-                      finishReason: event.status === "success" ? "stop" : "error",
+                      finishReason:
+                        event.status === "success" ? "stop" : "error",
                       usage: {
                         inputTokens: event.stats?.input_tokens || 0,
                         outputTokens: event.stats?.output_tokens || 0,
@@ -478,11 +533,11 @@ export function createGeminiCliProvider(
 function extractUserMessage(prompt: any): string {
   let userMessage = "";
   let systemPrompt = "";
-  
+
   if (typeof prompt === "string") {
     return prompt;
   }
-  
+
   if (Array.isArray(prompt)) {
     // First, extract system prompt if present
     for (const msg of prompt) {
@@ -493,7 +548,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Find the last user message
     for (let i = prompt.length - 1; i >= 0; i--) {
       const msg = prompt[i];
@@ -511,7 +566,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Fallback: concatenate all messages
     if (!userMessage) {
       userMessage = prompt
@@ -527,11 +582,11 @@ function extractUserMessage(prompt: any): string {
   } else {
     return String(prompt);
   }
-  
+
   // Prepend system prompt if found
   if (systemPrompt) {
     return `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n${userMessage}`;
   }
-  
+
   return userMessage;
 }

@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import type { LanguageModelV2 } from "@ai-sdk/provider";
 import log from "electron-log";
-import { getLettaPath, isLettaAvailable } from "../handlers/local_model_letta_handler";
+import {
+  getLettaPath,
+  isLettaAvailable,
+} from "../handlers/local_model_letta_handler";
 
 const logger = log.scope("letta_cli_provider");
 
@@ -25,7 +28,13 @@ interface LettaInitEvent {
 interface LettaMessageEvent {
   type: "message";
   id?: string;
-  message_type: "reasoning_message" | "assistant_message" | "tool_call" | "tool_return" | "stop_reason" | "usage_statistics";
+  message_type:
+    | "reasoning_message"
+    | "assistant_message"
+    | "tool_call"
+    | "tool_return"
+    | "stop_reason"
+    | "usage_statistics";
   content?: string;
   reasoning?: string;
   stop_reason?: string;
@@ -127,11 +136,11 @@ function formatToolOutput(output: string | undefined, maxLength = 500): string {
  * Creates a Letta CLI provider that implements the LanguageModelV2 interface
  */
 export function createLettaProvider(
-  options?: LettaProviderOptions
+  options?: LettaProviderOptions,
 ): LettaProvider {
   if (!isLettaAvailable()) {
     throw new Error(
-      "Letta CLI is not installed. Install it from: https://github.com/letta-ai/letta-code"
+      "Letta CLI is not installed. Install it from: https://github.com/letta-ai/letta-code",
     );
   }
 
@@ -143,12 +152,12 @@ export function createLettaProvider(
       provider: "letta",
       modelId: effectiveModel || "auto",
       supportedUrls: {},
-      
+
       async doGenerate(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         const userMessage = extractUserMessage(prompt);
-        
+
         return new Promise((resolve, reject) => {
           const lettaPath = getLettaPath();
           const args: string[] = ["-p", userMessage, "--output-format", "json"];
@@ -162,11 +171,15 @@ export function createLettaProvider(
             const existingAgentId = sessionMap.get(currentSessionKey);
             if (existingAgentId) {
               args.push("-a", existingAgentId);
-              logger.info(`Continuing Letta session with agent: ${existingAgentId}`);
+              logger.info(
+                `Continuing Letta session with agent: ${existingAgentId}`,
+              );
             }
           }
 
-          logger.info(`Letta CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+          logger.info(
+            `Letta CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+          );
 
           const lettaProcess = spawn(lettaPath, args, {
             stdio: ["ignore", "pipe", "pipe"],
@@ -228,9 +241,9 @@ export function createLettaProvider(
 
       async doStream(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         const userMessage = extractUserMessage(prompt);
-        
+
         const lettaPath = getLettaPath();
         const args = ["-p", userMessage, "--output-format", "stream-json"];
 
@@ -243,11 +256,15 @@ export function createLettaProvider(
           const existingAgentId = sessionMap.get(currentSessionKey);
           if (existingAgentId) {
             args.push("-a", existingAgentId);
-            logger.info(`Continuing Letta session with agent: ${existingAgentId}`);
+            logger.info(
+              `Continuing Letta session with agent: ${existingAgentId}`,
+            );
           }
         }
 
-        logger.info(`Letta CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+        logger.info(
+          `Letta CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+        );
 
         const lettaProcess = spawn(lettaPath, args, {
           stdio: ["ignore", "pipe", "pipe"],
@@ -267,15 +284,27 @@ export function createLettaProvider(
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
         let stderrBuffer = "";
-        
+
         // Track active tools for status updates
         const activeTools = new Map<string, string>();
 
         const stream = new ReadableStream({
           start(controller) {
+            // Send "Thinking..." indicator immediately so user sees activity
+            controller.enqueue({
+              type: "text-start",
+              id: textId,
+            });
+            textStartSent = true;
+            controller.enqueue({
+              type: "text-delta",
+              id: textId,
+              delta: "*Thinking...*\n\n",
+            });
+
             lettaProcess.stdout.on("data", (data: Buffer) => {
               buffer += data.toString();
-              
+
               const lines = buffer.split("\n");
               buffer = lines.pop() || "";
 
@@ -285,7 +314,7 @@ export function createLettaProvider(
 
                 try {
                   const event = JSON.parse(trimmedLine) as LettaStreamEvent;
-                  
+
                   // Handle init event - store agent ID
                   if (event.type === "init") {
                     if (currentSessionKey && event.agent_id) {
@@ -294,13 +323,18 @@ export function createLettaProvider(
                         storeSessionId(currentSessionKey, event.agent_id);
                       }
                     }
-                    logger.info(`Letta agent initialized: ${event.agent_id}, model: ${event.model}`);
+                    logger.info(
+                      `Letta agent initialized: ${event.agent_id}, model: ${event.model}`,
+                    );
                   }
-                  
+
                   // Handle message events
                   if (event.type === "message") {
                     // Assistant message - the actual response text
-                    if (event.message_type === "assistant_message" && event.content) {
+                    if (
+                      event.message_type === "assistant_message" &&
+                      event.content
+                    ) {
                       if (!textStartSent) {
                         controller.enqueue({
                           type: "text-start",
@@ -314,12 +348,12 @@ export function createLettaProvider(
                         delta: event.content,
                       });
                     }
-                    
+
                     // Tool call - show what tool is being used
                     if (event.message_type === "tool_call" && event.tool_call) {
                       const toolName = event.tool_call.name;
                       const callId = event.id || toolName;
-                      
+
                       if (!textStartSent) {
                         controller.enqueue({
                           type: "text-start",
@@ -327,19 +361,26 @@ export function createLettaProvider(
                         });
                         textStartSent = true;
                       }
-                      
+
                       if (!activeTools.has(callId)) {
                         activeTools.set(callId, toolName);
                         let toolMessage = `\n\n---\n**Tool: ${toolName}**\n`;
-                        
+
                         // Show arguments if available
-                        if (event.tool_call.arguments && Object.keys(event.tool_call.arguments).length > 0) {
-                          const argsStr = JSON.stringify(event.tool_call.arguments, null, 2);
+                        if (
+                          event.tool_call.arguments &&
+                          Object.keys(event.tool_call.arguments).length > 0
+                        ) {
+                          const argsStr = JSON.stringify(
+                            event.tool_call.arguments,
+                            null,
+                            2,
+                          );
                           if (argsStr.length < 500) {
                             toolMessage += `\`\`\`json\n${argsStr}\n\`\`\`\n`;
                           }
                         }
-                        
+
                         controller.enqueue({
                           type: "text-delta",
                           id: textId,
@@ -347,9 +388,12 @@ export function createLettaProvider(
                         });
                       }
                     }
-                    
+
                     // Tool return - show result
-                    if (event.message_type === "tool_return" && event.tool_return !== undefined) {
+                    if (
+                      event.message_type === "tool_return" &&
+                      event.tool_return !== undefined
+                    ) {
                       if (!textStartSent) {
                         controller.enqueue({
                           type: "text-start",
@@ -357,22 +401,25 @@ export function createLettaProvider(
                         });
                         textStartSent = true;
                       }
-                      
-                      const formattedOutput = formatToolOutput(event.tool_return, 1000);
+
+                      const formattedOutput = formatToolOutput(
+                        event.tool_return,
+                        1000,
+                      );
                       controller.enqueue({
                         type: "text-delta",
                         id: textId,
                         delta: `\`\`\`\n${formattedOutput}\n\`\`\`\n---\n\n`,
                       });
                     }
-                    
+
                     // Usage statistics
                     if (event.message_type === "usage_statistics") {
                       totalInputTokens = event.prompt_tokens || 0;
                       totalOutputTokens = event.completion_tokens || 0;
                     }
                   }
-                  
+
                   // Handle result event - final response
                   if (event.type === "result") {
                     // Store agent ID from result
@@ -382,13 +429,15 @@ export function createLettaProvider(
                         storeSessionId(currentSessionKey, event.agent_id);
                       }
                     }
-                    
+
                     // Update usage from result if available
                     if (event.usage) {
-                      totalInputTokens = event.usage.prompt_tokens || totalInputTokens;
-                      totalOutputTokens = event.usage.completion_tokens || totalOutputTokens;
+                      totalInputTokens =
+                        event.usage.prompt_tokens || totalInputTokens;
+                      totalOutputTokens =
+                        event.usage.completion_tokens || totalOutputTokens;
                     }
-                    
+
                     // Send the final result if we haven't streamed content yet
                     if (!textStartSent && event.result) {
                       controller.enqueue({
@@ -402,7 +451,7 @@ export function createLettaProvider(
                         delta: event.result,
                       });
                     }
-                    
+
                     // Close the stream
                     if (textStartSent) {
                       controller.enqueue({
@@ -424,7 +473,9 @@ export function createLettaProvider(
                     }
                   }
                 } catch {
-                  logger.debug(`Non-JSON from Letta CLI: ${trimmedLine.slice(0, 100)}`);
+                  logger.debug(
+                    `Non-JSON from Letta CLI: ${trimmedLine.slice(0, 100)}`,
+                  );
                 }
               }
             });
@@ -433,9 +484,12 @@ export function createLettaProvider(
               const text = data.toString();
               stderrBuffer += text;
               logger.warn(`Letta CLI stderr: ${text}`);
-              
+
               // Check for authentication errors
-              if (text.includes("Missing LETTA_API_KEY") || text.includes("authenticate")) {
+              if (
+                text.includes("Missing LETTA_API_KEY") ||
+                text.includes("authenticate")
+              ) {
                 if (!textStartSent) {
                   controller.enqueue({
                     type: "text-start",
@@ -446,7 +500,8 @@ export function createLettaProvider(
                 controller.enqueue({
                   type: "text-delta",
                   id: textId,
-                  delta: "**Letta CLI Error:** Authentication required.\n\nPlease run `letta` in your terminal to authenticate via Letta Cloud OAuth, or set the `LETTA_API_KEY` environment variable.\n",
+                  delta:
+                    "**Letta CLI Error:** Authentication required.\n\nPlease run `letta` in your terminal to authenticate via Letta Cloud OAuth, or set the `LETTA_API_KEY` environment variable.\n",
                 });
               }
             });
@@ -464,14 +519,16 @@ export function createLettaProvider(
                 try {
                   const event = JSON.parse(buffer.trim()) as LettaStreamEvent;
                   if (event.type === "result" && event.usage) {
-                    totalInputTokens = event.usage.prompt_tokens || totalInputTokens;
-                    totalOutputTokens = event.usage.completion_tokens || totalOutputTokens;
+                    totalInputTokens =
+                      event.usage.prompt_tokens || totalInputTokens;
+                    totalOutputTokens =
+                      event.usage.completion_tokens || totalOutputTokens;
                   }
                 } catch {
                   // Ignore
                 }
               }
-              
+
               if (!streamClosed) {
                 if (textStartSent) {
                   controller.enqueue({
@@ -510,11 +567,11 @@ export function createLettaProvider(
 function extractUserMessage(prompt: any): string {
   let userMessage = "";
   let systemPrompt = "";
-  
+
   if (typeof prompt === "string") {
     return prompt;
   }
-  
+
   if (Array.isArray(prompt)) {
     // First, extract system prompt if present
     for (const msg of prompt) {
@@ -525,7 +582,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Find the last user message
     for (let i = prompt.length - 1; i >= 0; i--) {
       const msg = prompt[i];
@@ -543,7 +600,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Fallback: concatenate all messages
     if (!userMessage) {
       userMessage = prompt
@@ -559,11 +616,11 @@ function extractUserMessage(prompt: any): string {
   } else {
     return String(prompt);
   }
-  
+
   // Prepend system prompt if found
   if (systemPrompt) {
     return `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n${userMessage}`;
   }
-  
+
   return userMessage;
 }

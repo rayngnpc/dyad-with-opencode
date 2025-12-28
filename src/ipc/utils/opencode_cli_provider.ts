@@ -1,7 +1,10 @@
 import { spawn } from "node:child_process";
 import type { LanguageModelV2 } from "@ai-sdk/provider";
 import log from "electron-log";
-import { getOpenCodePath, isOpenCodeAvailable } from "../handlers/local_model_opencode_handler";
+import {
+  getOpenCodePath,
+  isOpenCodeAvailable,
+} from "../handlers/local_model_opencode_handler";
 
 const logger = log.scope("opencode_cli_provider");
 
@@ -96,7 +99,12 @@ interface OpenCodeError {
   };
 }
 
-type OpenCodeStreamEvent = OpenCodeStepStart | OpenCodeText | OpenCodeToolUse | OpenCodeStepFinish | OpenCodeError;
+type OpenCodeStreamEvent =
+  | OpenCodeStepStart
+  | OpenCodeText
+  | OpenCodeToolUse
+  | OpenCodeStepFinish
+  | OpenCodeError;
 
 // Module-level state for the current working directory
 let currentWorkingDirectory: string | undefined;
@@ -186,11 +194,11 @@ function formatToolOutput(output: string | undefined, maxLength = 500): string {
  * Creates an OpenCode CLI provider that implements the LanguageModelV2 interface
  */
 export function createOpenCodeProvider(
-  options?: OpenCodeProviderOptions
+  options?: OpenCodeProviderOptions,
 ): OpenCodeProvider {
   if (!isOpenCodeAvailable()) {
     throw new Error(
-      "OpenCode CLI is not installed. Install it from: https://opencode.ai"
+      "OpenCode CLI is not installed. Install it from: https://opencode.ai",
     );
   }
 
@@ -202,12 +210,12 @@ export function createOpenCodeProvider(
       provider: "opencode",
       modelId: effectiveModel || "default",
       supportedUrls: {},
-      
+
       async doGenerate(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         const userMessage = extractUserMessage(prompt);
-        
+
         return new Promise((resolve, reject) => {
           const opencodePath = getOpenCodePath();
           const args: string[] = ["run", "--format", "json"];
@@ -227,7 +235,9 @@ export function createOpenCodeProvider(
 
           args.push(userMessage);
 
-          logger.info(`OpenCode CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+          logger.info(
+            `OpenCode CLI doGenerate with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+          );
 
           const opencodeProcess = spawn(opencodePath, args, {
             stdio: ["ignore", "pipe", "pipe"],
@@ -253,7 +263,7 @@ export function createOpenCodeProvider(
                 const event = JSON.parse(line) as OpenCodeStreamEvent;
                 // Store session ID from any event
                 parseAndStoreSessionId(event);
-                
+
                 if (event.type === "text") {
                   output = event.part.text;
                 } else if (event.type === "step_finish") {
@@ -290,9 +300,9 @@ export function createOpenCodeProvider(
 
       async doStream(options): Promise<any> {
         const { prompt, abortSignal } = options;
-        
+
         const userMessage = extractUserMessage(prompt);
-        
+
         const opencodePath = getOpenCodePath();
         const args = ["run", "--format", "json"];
 
@@ -311,7 +321,9 @@ export function createOpenCodeProvider(
 
         args.push(userMessage);
 
-        logger.info(`OpenCode CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`);
+        logger.info(
+          `OpenCode CLI doStream with model: ${effectiveModel}, cwd: ${currentWorkingDirectory || process.cwd()}`,
+        );
 
         const opencodeProcess = spawn(opencodePath, args, {
           stdio: ["ignore", "pipe", "pipe"],
@@ -331,7 +343,7 @@ export function createOpenCodeProvider(
         let totalInputTokens = 0;
         let totalOutputTokens = 0;
         let lastTextContent = "";
-        
+
         // Track active tools for status updates
         const activeTools = new Map<string, string>();
 
@@ -339,7 +351,7 @@ export function createOpenCodeProvider(
           start(controller) {
             opencodeProcess.stdout.on("data", (data: Buffer) => {
               buffer += data.toString();
-              
+
               const lines = buffer.split("\n");
               buffer = lines.pop() || "";
 
@@ -349,19 +361,19 @@ export function createOpenCodeProvider(
 
                 try {
                   const event = JSON.parse(trimmedLine) as OpenCodeStreamEvent;
-                  
+
                   // Store session ID from any event
                   parseAndStoreSessionId(event);
-                  
+
                   if (event.type === "error") {
-                    const errorMsg = event.error.data?.message || event.error.name;
+                    const errorMsg =
+                      event.error.data?.message || event.error.name;
                     controller.error(new Error(errorMsg));
                     streamClosed = true;
                     return;
                   }
 
                   if (event.type === "step_start") {
-                    // Send a visual indicator that a new step is starting
                     if (!textStartSent) {
                       controller.enqueue({
                         type: "text-start",
@@ -369,12 +381,19 @@ export function createOpenCodeProvider(
                       });
                       textStartSent = true;
                     }
-                    logger.debug(`OpenCode step started: ${event.part.messageID}`);
+                    controller.enqueue({
+                      type: "text-delta",
+                      id: textId,
+                      delta: "\n*Thinking...*\n\n",
+                    });
+                    logger.debug(
+                      `OpenCode step started: ${event.part.messageID}`,
+                    );
                   }
-                  
+
                   if (event.type === "text") {
                     const content = event.part.text;
-                    
+
                     if (!textStartSent) {
                       controller.enqueue({
                         type: "text-start",
@@ -382,14 +401,14 @@ export function createOpenCodeProvider(
                       });
                       textStartSent = true;
                     }
-                    
+
                     // OpenCode sends full text, not deltas - calculate delta
                     if (content !== lastTextContent) {
-                      const delta = content.startsWith(lastTextContent) 
-                        ? content.slice(lastTextContent.length) 
+                      const delta = content.startsWith(lastTextContent)
+                        ? content.slice(lastTextContent.length)
                         : content;
                       lastTextContent = content;
-                      
+
                       if (delta) {
                         controller.enqueue({
                           type: "text-delta",
@@ -399,13 +418,13 @@ export function createOpenCodeProvider(
                       }
                     }
                   }
-                  
+
                   if (event.type === "tool_use") {
                     const tool = event.part;
                     const toolName = tool.tool;
                     const status = tool.state.status;
                     const callID = tool.callID;
-                    
+
                     if (!textStartSent) {
                       controller.enqueue({
                         type: "text-start",
@@ -420,15 +439,22 @@ export function createOpenCodeProvider(
                         activeTools.set(callID, toolName);
                         const title = tool.state.title || toolName;
                         let toolMessage = `\n\n---\n**Tool: ${title}**\n`;
-                        
+
                         // Show input if available
-                        if (tool.state.input && Object.keys(tool.state.input).length > 0) {
-                          const inputStr = JSON.stringify(tool.state.input, null, 2);
+                        if (
+                          tool.state.input &&
+                          Object.keys(tool.state.input).length > 0
+                        ) {
+                          const inputStr = JSON.stringify(
+                            tool.state.input,
+                            null,
+                            2,
+                          );
                           if (inputStr.length < 200) {
                             toolMessage += `\`\`\`json\n${inputStr}\n\`\`\`\n`;
                           }
                         }
-                        
+
                         controller.enqueue({
                           type: "text-delta",
                           id: textId,
@@ -439,15 +465,18 @@ export function createOpenCodeProvider(
                       activeTools.delete(callID);
                       const title = tool.state.title || toolName;
                       let resultMessage = `**${title}** completed\n`;
-                      
+
                       // Show output if available (truncated)
                       if (tool.state.output) {
-                        const formattedOutput = formatToolOutput(tool.state.output, 1000);
+                        const formattedOutput = formatToolOutput(
+                          tool.state.output,
+                          1000,
+                        );
                         resultMessage += `\`\`\`\n${formattedOutput}\n\`\`\`\n---\n\n`;
                       } else {
                         resultMessage += "---\n\n";
                       }
-                      
+
                       controller.enqueue({
                         type: "text-delta",
                         id: textId,
@@ -462,14 +491,16 @@ export function createOpenCodeProvider(
                         id: textId,
                         delta: `**${toolName}** failed: ${errorMsg}\n---\n\n`,
                       });
-                      logger.warn(`OpenCode tool error: ${toolName} - ${errorMsg}`);
+                      logger.warn(
+                        `OpenCode tool error: ${toolName} - ${errorMsg}`,
+                      );
                     }
                   }
-                  
+
                   if (event.type === "step_finish") {
                     totalInputTokens += event.part.tokens.input;
                     totalOutputTokens += event.part.tokens.output;
-                    
+
                     // Only close stream if reason is "stop" (not "tool-calls")
                     if (event.part.reason === "stop") {
                       if (textStartSent) {
@@ -493,7 +524,9 @@ export function createOpenCodeProvider(
                     }
                   }
                 } catch {
-                  logger.debug(`Non-JSON from OpenCode CLI: ${trimmedLine.slice(0, 100)}`);
+                  logger.debug(
+                    `Non-JSON from OpenCode CLI: ${trimmedLine.slice(0, 100)}`,
+                  );
                 }
               }
             });
@@ -514,7 +547,9 @@ export function createOpenCodeProvider(
               // Process remaining buffer
               if (buffer.trim() && !streamClosed) {
                 try {
-                  const event = JSON.parse(buffer.trim()) as OpenCodeStreamEvent;
+                  const event = JSON.parse(
+                    buffer.trim(),
+                  ) as OpenCodeStreamEvent;
                   parseAndStoreSessionId(event);
                   if (event.type === "step_finish") {
                     totalInputTokens += event.part.tokens.input;
@@ -524,7 +559,7 @@ export function createOpenCodeProvider(
                   // Ignore
                 }
               }
-              
+
               if (!streamClosed) {
                 if (textStartSent) {
                   controller.enqueue({
@@ -563,11 +598,11 @@ export function createOpenCodeProvider(
 function extractUserMessage(prompt: any): string {
   let userMessage = "";
   let systemPrompt = "";
-  
+
   if (typeof prompt === "string") {
     return prompt;
   }
-  
+
   if (Array.isArray(prompt)) {
     // First, extract system prompt if present
     for (const msg of prompt) {
@@ -578,7 +613,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Find the last user message
     for (let i = prompt.length - 1; i >= 0; i--) {
       const msg = prompt[i];
@@ -596,7 +631,7 @@ function extractUserMessage(prompt: any): string {
         }
       }
     }
-    
+
     // Fallback: concatenate all messages
     if (!userMessage) {
       userMessage = prompt
@@ -612,11 +647,11 @@ function extractUserMessage(prompt: any): string {
   } else {
     return String(prompt);
   }
-  
+
   // Prepend system prompt if found
   if (systemPrompt) {
     return `<system_instructions>\n${systemPrompt}\n</system_instructions>\n\n${userMessage}`;
   }
-  
+
   return userMessage;
 }

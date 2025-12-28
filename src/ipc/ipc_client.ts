@@ -1127,6 +1127,27 @@ export class IpcClient {
     return response?.models || [];
   }
 
+  public async isOpenCodeAvailable(): Promise<boolean> {
+    return this.ipcRenderer.invoke("local-models:opencode-available");
+  }
+
+  public async isGeminiCliAvailable(): Promise<boolean> {
+    return this.ipcRenderer.invoke("local-models:gemini-cli-available");
+  }
+
+  public async isLettaAvailable(): Promise<boolean> {
+    return this.ipcRenderer.invoke("local-models:letta-available");
+  }
+
+  public async isAnyCliProviderAvailable(): Promise<boolean> {
+    const [opencode, gemini, letta] = await Promise.all([
+      this.isOpenCodeAvailable().catch(() => false),
+      this.isGeminiCliAvailable().catch(() => false),
+      this.isLettaAvailable().catch(() => false),
+    ]);
+    return opencode || gemini || letta;
+  }
+
   // Listen for deep link events
   public onDeepLinkReceived(
     callback: (data: DeepLinkData) => void,

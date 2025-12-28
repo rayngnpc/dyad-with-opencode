@@ -19,12 +19,19 @@ export function useLanguageModelProviders() {
     },
   });
 
+  const cliAvailabilityQuery = useQuery<boolean, Error>({
+    queryKey: ["cliProviderAvailability"],
+    queryFn: async () => {
+      return ipcClient.isAnyCliProviderAvailable();
+    },
+    staleTime: 60000,
+  });
+
   const isProviderSetup = (provider: string) => {
     const providerSettings = settings?.providerSettings[provider];
     if (queryResult.isLoading) {
       return false;
     }
-    // Vertex uses service account credentials instead of an API key
     if (provider === "vertex") {
       const vertexSettings = providerSettings as VertexProviderSetting;
       if (
@@ -61,22 +68,27 @@ export function useLanguageModelProviders() {
   };
 
   const isAnyProviderSetup = () => {
-    // Check hardcoded cloud providers
     if (cloudProviders.some((provider) => isProviderSetup(provider))) {
       return true;
     }
 
-    // Check custom providers
     const customProviders = queryResult.data?.filter(
       (provider) => provider.type === "custom",
     );
-    return (
-      customProviders?.some((provider) => isProviderSetup(provider.id)) ?? false
-    );
+    if (customProviders?.some((provider) => isProviderSetup(provider.id))) {
+      return true;
+    }
+
+    if (cliAvailabilityQuery.data === true) {
+      return true;
+    }
+
+    return false;
   };
 
   return {
     ...queryResult,
+    isLoading: queryResult.isLoading || cliAvailabilityQuery.isLoading,
     isProviderSetup,
     isAnyProviderSetup,
   };

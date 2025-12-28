@@ -1373,17 +1373,26 @@ ${problemReport.problems
 
       // Only save the response and process it if we weren't aborted
       if (!abortController.signal.aborted && fullResponse) {
-        // Scrape from: <dyad-chat-summary>Renaming profile file</dyad-chat-title>
-        const chatTitle = fullResponse.match(
+        const chatTitleMatch = fullResponse.match(
           /<dyad-chat-summary>(.*?)<\/dyad-chat-summary>/,
         );
-        if (chatTitle) {
+
+        let chatSummary: string | undefined;
+        if (chatTitleMatch) {
+          chatSummary = chatTitleMatch[1];
           await db
             .update(chats)
-            .set({ title: chatTitle[1] })
+            .set({ title: chatSummary })
             .where(and(eq(chats.id, req.chatId), isNull(chats.title)));
+        } else if (chat.title === null) {
+          chatSummary = generateTitleFromPrompt(req.prompt);
+          if (chatSummary) {
+            await db
+              .update(chats)
+              .set({ title: chatSummary })
+              .where(and(eq(chats.id, req.chatId), isNull(chats.title)));
+          }
         }
-        const chatSummary = chatTitle?.[1];
 
         // Update the placeholder assistant message with the full response
         await db
@@ -1675,13 +1684,28 @@ export function hasUnclosedDyadWrite(text: string): boolean {
 }
 
 function escapeDyadTags(text: string): string {
-  // Escape dyad tags in reasoning content
-  // We are replacing the opening tag with a look-alike character
-  // to avoid issues where thinking content includes dyad tags
-  // and are mishandled by:
-  // 1. FE markdown parser
-  // 2. Main process response processor
   return text.replace(/<dyad/g, "＜dyad").replace(/<\/dyad/g, "＜/dyad");
+}
+
+function generateTitleFromPrompt(prompt: string): string {
+  const maxLength = 60;
+  let cleaned = prompt
+    .replace(/@prompt:\d+/g, "")
+    .replace(/@\w+/g, "")
+    .replace(/\n+/g, " ")
+    .replace(/\s+/g, " ")
+    .trim();
+
+  if (cleaned.length <= maxLength) {
+    return cleaned || "New Chat";
+  }
+
+  const truncated = cleaned.slice(0, maxLength);
+  const lastSpace = truncated.lastIndexOf(" ");
+  if (lastSpace > maxLength * 0.5) {
+    return truncated.slice(0, lastSpace) + "...";
+  }
+  return truncated + "...";
 }
 
 const CODEBASE_PROMPT_PREFIX = "This is my codebase.";
