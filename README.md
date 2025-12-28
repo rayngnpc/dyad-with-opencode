@@ -68,11 +68,11 @@ Letta is the engine behind stateful agents (forked from MemGPT).
 
 ### 🛠️ Setting up Gemini CLI
 
-**⚠️ Important**: Do not simply run `pip install gemini` as that may install a crypto exchange client.
+**⚠️ Important**: This integration is designed for the community `gemini-cli` tool (often installed via `pip install gemini-cli` from specific repositories) that supports the `--yolo` flag.
 
-1. This integration expects a CLI tool named `gemini` that supports Google Generative AI.
-2. If you are using the official Google Cloud SDK, you may need to alias `gcloud ai` or install a specific wrapper.
-3. Ensure the command `gemini` is available in your PATH.
+1. Ensure you have a `gemini` command in your path that accepts `--yolo` and `--output-format json`.
+2. If you are using the official Google Cloud SDK, this integration might need a wrapper.
+3. Verify: `gemini --version`
 
 ---
 
