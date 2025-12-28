@@ -1108,6 +1108,25 @@ export class IpcClient {
     return response?.models || [];
   }
 
+  public async listLocalGeminiCliModels(): Promise<LocalModel[]> {
+    const response = await this.ipcRenderer.invoke(
+      "local-models:list-gemini-cli",
+    );
+    return response?.models || [];
+  }
+
+  public async listLocalOpenCodeModels(): Promise<LocalModel[]> {
+    const response = await this.ipcRenderer.invoke(
+      "local-models:list-opencode",
+    );
+    return response?.models || [];
+  }
+
+  public async listLocalLettaModels(): Promise<LocalModel[]> {
+    const response = await this.ipcRenderer.invoke("local-models:list-letta");
+    return response?.models || [];
+  }
+
   // Listen for deep link events
   public onDeepLinkReceived(
     callback: (data: DeepLinkData) => void,

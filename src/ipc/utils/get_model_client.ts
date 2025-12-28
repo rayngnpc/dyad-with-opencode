@@ -25,6 +25,9 @@ import { LM_STUDIO_BASE_URL } from "./lm_studio_utils";
 import { createOllamaProvider } from "./ollama_provider";
 import { getOllamaApiUrl } from "../handlers/local_model_ollama_handler";
 import { createFallback } from "./fallback_ai_model";
+import { createGeminiCliProvider } from "./gemini_cli_provider";
+import { createOpenCodeProvider } from "./opencode_cli_provider";
+import { createLettaProvider } from "./letta_cli_provider";
 
 const dyadEngineUrl = process.env.DYAD_ENGINE_URL;
 
@@ -367,6 +370,33 @@ function getRegularModelClient(
         name: "lmstudio",
         baseURL,
       });
+      return {
+        modelClient: {
+          model: provider(model.name),
+        },
+        backupModelClients: [],
+      };
+    }
+    case "gemini_cli": {
+      const provider = createGeminiCliProvider();
+      return {
+        modelClient: {
+          model: provider(model.name),
+        },
+        backupModelClients: [],
+      };
+    }
+    case "opencode": {
+      const provider = createOpenCodeProvider();
+      return {
+        modelClient: {
+          model: provider(model.name),
+        },
+        backupModelClients: [],
+      };
+    }
+    case "letta": {
+      const provider = createLettaProvider();
       return {
         modelClient: {
           model: provider(model.name),

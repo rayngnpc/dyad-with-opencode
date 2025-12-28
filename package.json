@@ -13,6 +13,7 @@
   },
   "scripts": {
     "clean": "rimraf out scaffold/node_modules",
+    "prestart": "rm -rf .vite/build 2>/dev/null || true; rm -rf node_modules/better-sqlite3/build 2>/dev/null || true",
     "start": "electron-forge start",
     "dev:engine": "cross-env DYAD_ENGINE_URL=http://localhost:8080/v1 npm start",
     "staging:engine": "cross-env DYAD_ENGINE_URL=https://staging---dyad-llm-engine-kq7pivehnq-uc.a.run.app/v1 npm start",

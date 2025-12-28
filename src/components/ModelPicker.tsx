@@ -19,6 +19,9 @@ import {
 import { useEffect, useState } from "react";
 import { useLocalModels } from "@/hooks/useLocalModels";
 import { useLocalLMSModels } from "@/hooks/useLMStudioModels";
+import { useGeminiCliModels } from "@/hooks/useGeminiCliModels";
+import { useOpenCodeModels } from "@/hooks/useOpenCodeModels";
+import { useLettaModels } from "@/hooks/useLettaModels";
 import { useLanguageModelsByProviders } from "@/hooks/useLanguageModelsByProviders";
 
 import { LocalModel } from "@/ipc/ipc_types";
@@ -66,13 +69,40 @@ export function ModelPicker() {
     loadModels: loadLMStudioModels,
   } = useLocalLMSModels();
 
+  // Gemini CLI Models Hook
+  const {
+    models: geminiCliModels,
+    loading: geminiCliLoading,
+    error: geminiCliError,
+    loadModels: loadGeminiCliModels,
+  } = useGeminiCliModels();
+
+  // OpenCode Models Hook
+  const {
+    models: openCodeModels,
+    loading: openCodeLoading,
+    error: openCodeError,
+    loadModels: loadOpenCodeModels,
+  } = useOpenCodeModels();
+
+  // Letta Models Hook
+  const {
+    models: lettaModels,
+    loading: lettaLoading,
+    error: lettaError,
+    loadModels: loadLettaModels,
+  } = useLettaModels();
+
   // Load models when the dropdown opens
   useEffect(() => {
     if (open) {
       loadOllamaModels();
       loadLMStudioModels();
+      loadGeminiCliModels();
+      loadOpenCodeModels();
+      loadLettaModels();
     }
-  }, [open, loadOllamaModels, loadLMStudioModels]);
+  }, [open, loadOllamaModels, loadLMStudioModels, loadGeminiCliModels, loadOpenCodeModels, loadLettaModels]);
 
   // Get display name for the selected model
   const getModelDisplayName = () => {
@@ -88,6 +118,27 @@ export function ModelPicker() {
         lmStudioModels.find(
           (model: LocalModel) => model.modelName === selectedModel.name,
         )?.displayName || selectedModel.name // Fallback to path if not found
+      );
+    }
+    if (selectedModel.provider === "gemini_cli") {
+      return (
+        geminiCliModels.find(
+          (model: LocalModel) => model.modelName === selectedModel.name,
+        )?.displayName || selectedModel.name
+      );
+    }
+    if (selectedModel.provider === "opencode") {
+      return (
+        openCodeModels.find(
+          (model: LocalModel) => model.modelName === selectedModel.name,
+        )?.displayName || selectedModel.name
+      );
+    }
+    if (selectedModel.provider === "letta") {
+      return (
+        lettaModels.find(
+          (model: LocalModel) => model.modelName === selectedModel.name,
+        )?.displayName || selectedModel.name
       );
     }
 
@@ -139,6 +190,12 @@ export function ModelPicker() {
     !ollamaLoading && !ollamaError && ollamaModels.length > 0;
   const hasLMStudioModels =
     !lmStudioLoading && !lmStudioError && lmStudioModels.length > 0;
+  const hasGeminiCliModels =
+    !geminiCliLoading && !geminiCliError && geminiCliModels.length > 0;
+  const hasOpenCodeModels =
+    !openCodeLoading && !openCodeError && openCodeModels.length > 0;
+  const hasLettaModels =
+    !lettaLoading && !lettaError && lettaModels.length > 0;
 
   if (!settings) {
     return null;
@@ -448,7 +505,7 @@ export function ModelPicker() {
             <div className="flex flex-col items-start">
               <span>Local models</span>
               <span className="text-xs text-muted-foreground">
-                LM Studio, Ollama
+                Ollama, LM Studio, Gemini CLI, OpenCode
               </span>
             </div>
           </DropdownMenuSubTrigger>
@@ -607,6 +664,249 @@ export function ModelPicker() {
                         {/* Display the user-friendly name */}
                         <span>{model.displayName}</span>
                         {/* Show the path as secondary info */}
+                        <span className="text-xs text-muted-foreground truncate">
+                          {model.modelName}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* Gemini CLI Models SubMenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger
+                disabled={geminiCliLoading && !hasGeminiCliModels}
+                className="w-full font-normal"
+              >
+                <div className="flex flex-col items-start">
+                  <span>Gemini CLI</span>
+                  {geminiCliLoading ? (
+                    <span className="text-xs text-muted-foreground">
+                      Loading...
+                    </span>
+                  ) : geminiCliError ? (
+                    <span className="text-xs text-red-500">Error loading</span>
+                  ) : !hasGeminiCliModels ? (
+                    <span className="text-xs text-muted-foreground">
+                      None available
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {geminiCliModels.length} models
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56 max-h-100 overflow-y-auto">
+                <DropdownMenuLabel>Gemini CLI Models</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {geminiCliLoading && geminiCliModels.length === 0 ? (
+                  <div className="text-xs text-center py-2 text-muted-foreground">
+                    Loading models...
+                  </div>
+                ) : geminiCliError ? (
+                  <div className="px-2 py-1.5 text-sm text-red-600">
+                    <div className="flex flex-col">
+                      <span>Error loading models</span>
+                      <span className="text-xs text-muted-foreground">
+                        Is Gemini CLI installed?
+                      </span>
+                    </div>
+                  </div>
+                ) : !hasGeminiCliModels ? (
+                  <div className="px-2 py-1.5 text-sm">
+                    <div className="flex flex-col">
+                      <span>No models found</span>
+                      <span className="text-xs text-muted-foreground">
+                        Install Gemini CLI from github.com/google-gemini/gemini-cli
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  geminiCliModels.map((model: LocalModel) => (
+                    <DropdownMenuItem
+                      key={`gemini-cli-${model.modelName}`}
+                      className={
+                        selectedModel.provider === "gemini_cli" &&
+                        selectedModel.name === model.modelName
+                          ? "bg-secondary"
+                          : ""
+                      }
+                      onClick={() => {
+                        onModelSelect({
+                          name: model.modelName,
+                          provider: "gemini_cli",
+                        });
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span>{model.displayName}</span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {model.modelName}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* OpenCode Models SubMenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger
+                disabled={openCodeLoading && !hasOpenCodeModels}
+                className="w-full font-normal"
+              >
+                <div className="flex flex-col items-start">
+                  <span>OpenCode</span>
+                  {openCodeLoading ? (
+                    <span className="text-xs text-muted-foreground">
+                      Loading...
+                    </span>
+                  ) : openCodeError ? (
+                    <span className="text-xs text-red-500">Error loading</span>
+                  ) : !hasOpenCodeModels ? (
+                    <span className="text-xs text-muted-foreground">
+                      None available
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {openCodeModels.length} models
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56 max-h-100 overflow-y-auto">
+                <DropdownMenuLabel>OpenCode Models</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {openCodeLoading && openCodeModels.length === 0 ? (
+                  <div className="text-xs text-center py-2 text-muted-foreground">
+                    Loading models...
+                  </div>
+                ) : openCodeError ? (
+                  <div className="px-2 py-1.5 text-sm text-red-600">
+                    <div className="flex flex-col">
+                      <span>Error loading models</span>
+                      <span className="text-xs text-muted-foreground">
+                        Is OpenCode CLI installed?
+                      </span>
+                    </div>
+                  </div>
+                ) : !hasOpenCodeModels ? (
+                  <div className="px-2 py-1.5 text-sm">
+                    <div className="flex flex-col">
+                      <span>No models found</span>
+                      <span className="text-xs text-muted-foreground">
+                        Install OpenCode from opencode.ai
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  openCodeModels.map((model: LocalModel) => (
+                    <DropdownMenuItem
+                      key={`opencode-${model.modelName}`}
+                      className={
+                        selectedModel.provider === "opencode" &&
+                        selectedModel.name === model.modelName
+                          ? "bg-secondary"
+                          : ""
+                      }
+                      onClick={() => {
+                        onModelSelect({
+                          name: model.modelName,
+                          provider: "opencode",
+                        });
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span>{model.displayName}</span>
+                        <span className="text-xs text-muted-foreground truncate">
+                          {model.modelName}
+                        </span>
+                      </div>
+                    </DropdownMenuItem>
+                  ))
+                )}
+              </DropdownMenuSubContent>
+            </DropdownMenuSub>
+
+            {/* Letta Models SubMenu */}
+            <DropdownMenuSub>
+              <DropdownMenuSubTrigger
+                disabled={lettaLoading && !hasLettaModels}
+                className="w-full font-normal"
+              >
+                <div className="flex flex-col items-start">
+                  <span>Letta</span>
+                  {lettaLoading ? (
+                    <span className="text-xs text-muted-foreground">
+                      Loading...
+                    </span>
+                  ) : lettaError ? (
+                    <span className="text-xs text-red-500">Error loading</span>
+                  ) : !hasLettaModels ? (
+                    <span className="text-xs text-muted-foreground">
+                      None available
+                    </span>
+                  ) : (
+                    <span className="text-xs text-muted-foreground">
+                      {lettaModels.length} models
+                    </span>
+                  )}
+                </div>
+              </DropdownMenuSubTrigger>
+              <DropdownMenuSubContent className="w-56 max-h-100 overflow-y-auto">
+                <DropdownMenuLabel>Letta Models</DropdownMenuLabel>
+                <DropdownMenuSeparator />
+
+                {lettaLoading && lettaModels.length === 0 ? (
+                  <div className="text-xs text-center py-2 text-muted-foreground">
+                    Loading models...
+                  </div>
+                ) : lettaError ? (
+                  <div className="px-2 py-1.5 text-sm text-red-600">
+                    <div className="flex flex-col">
+                      <span>Error loading models</span>
+                      <span className="text-xs text-muted-foreground">
+                        Is Letta CLI installed?
+                      </span>
+                    </div>
+                  </div>
+                ) : !hasLettaModels ? (
+                  <div className="px-2 py-1.5 text-sm">
+                    <div className="flex flex-col">
+                      <span>No models found</span>
+                      <span className="text-xs text-muted-foreground">
+                        Install Letta from github.com/letta-ai/letta-code
+                      </span>
+                    </div>
+                  </div>
+                ) : (
+                  lettaModels.map((model: LocalModel) => (
+                    <DropdownMenuItem
+                      key={`letta-${model.modelName}`}
+                      className={
+                        selectedModel.provider === "letta" &&
+                        selectedModel.name === model.modelName
+                          ? "bg-secondary"
+                          : ""
+                      }
+                      onClick={() => {
+                        onModelSelect({
+                          name: model.modelName,
+                          provider: "letta",
+                        });
+                        setOpen(false);
+                      }}
+                    >
+                      <div className="flex flex-col">
+                        <span>{model.displayName}</span>
                         <span className="text-xs text-muted-foreground truncate">
                           {model.modelName}
                         </span>

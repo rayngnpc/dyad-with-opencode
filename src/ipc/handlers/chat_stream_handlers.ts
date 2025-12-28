@@ -87,6 +87,18 @@ import {
   VersionedFiles,
 } from "../utils/versioned_codebase_context";
 import { getAiMessagesJsonIfWithinLimit } from "../utils/ai_messages_utils";
+import {
+  setGeminiCliWorkingDirectory,
+  setGeminiCliSessionKey,
+} from "../utils/gemini_cli_provider";
+import {
+  setOpenCodeWorkingDirectory,
+  setOpenCodeSessionKey,
+} from "../utils/opencode_cli_provider";
+import {
+  setLettaWorkingDirectory,
+  setLettaSessionKey,
+} from "../utils/letta_cli_provider";
 
 type AsyncIterableStream<T> = AsyncIterable<T> & ReadableStream<T>;
 
@@ -469,6 +481,23 @@ ${componentSnippet}
           await getModelClient(settings.selectedModel, settings);
 
         const appPath = getDyadAppPath(updatedChat.app.path);
+
+        // Set up session persistence for CLI providers (Gemini CLI, OpenCode)
+        // Using app-based session key so all chats for the same app share the CLI session.
+        // This enables session continuity across related operations (e.g., security review → fix issue).
+        const sessionKey = `app-${updatedChat.app.id}`;
+        const selectedProvider = settings.selectedModel?.provider;
+        if (selectedProvider === "gemini_cli") {
+          setGeminiCliWorkingDirectory(appPath);
+          setGeminiCliSessionKey(sessionKey);
+        } else if (selectedProvider === "opencode") {
+          setOpenCodeWorkingDirectory(appPath);
+          setOpenCodeSessionKey(sessionKey);
+        } else if (selectedProvider === "letta") {
+          setLettaWorkingDirectory(appPath);
+          setLettaSessionKey(sessionKey);
+        }
+
         // When we don't have smart context enabled, we
         // only include the selected components' files for codebase context.
         //
