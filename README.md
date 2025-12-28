@@ -78,17 +78,25 @@ Letta is the engine behind stateful agents (forked from MemGPT).
 
 ## 📦 Download & Run
 
-Since this is a fork, you'll likely want to build it yourself or download releases from this repository (once available).
+**Requirements:** Node.js 20+
 
 ```bash
 # Clone this repo
 git clone https://github.com/rayngnpc/dyad-with-opencode.git
+cd dyad-with-opencode
 
 # Install dependencies
 npm install
 
-# Run locally
-npm run dev
+# (Linux only) Rebuild native modules if you get SQLite errors
+npm rebuild better-sqlite3
+
+# Create database directory and initialize DB
+mkdir -p userData
+npm run db:push
+
+# Run the app
+npm start
 ```
 
 ---
@@ -97,7 +105,7 @@ npm run dev
 
 - ⚡️ **Local**: Fast, private and no lock-in.
 - 🛠 **Bring your own keys**: Use your own AI API keys — no vendor lock-in.
-- 🖥️ **Cross-platform**: Easy to run on Mac or Windows.
+- 🖥️ **Cross-platform**: Easy to run on Mac, Windows, or Linux.
 
 ## 🤝 Community
 
