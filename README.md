@@ -5,8 +5,8 @@
 While the original Dyad focuses on cloud models and basic local inference (Ollama), this version unlocks the power of advanced local tools:
 
 - **OpenCode Interpreter**: Run code-interpreting agents locally.
-- **Google Gemini CLI**: Use Gemini 1.5/Pro models directly from your terminal integration.
-- **Letta Agents**: Run stateful, memory-aware agents locally.
+- **Letta Agents**: Run stateful, memory-aware agents locally (formerly MemGPT).
+- **Google Gemini CLI**: Use Gemini 1.5/Pro models via terminal integration.
 
 > **Note**: This is a community fork. For the official Dyad project, visit [dyad.sh](https://dyad.sh/).
 
@@ -18,27 +18,25 @@ Use [OpenCode](https://opencode.ai) directly within Dyad.
 
 - **Code Execution**: The model can write and run code to solve complex tasks.
 - **Local Privacy**: All code runs in your local environment.
-- **No API Keys Needed**: Uses your local OpenCode installation.
 
-### 2. Google Gemini CLI Support
+### 2. Letta Agent Support
 
-Connects to your local [Gemini CLI](https://github.com/google-gemini/gemini-cli).
-
-- **Access Latest Models**: Use Gemini 1.5 Pro, Flash, and more.
-- **Free Tier**: Leverage the generous free tier of Gemini via the CLI.
-
-### 3. Letta Agent Support
-
-Integrates [Letta](https://github.com/letta-ai/letta-code) (formerly MemGPT-like agents).
+Integrates [Letta](https://docs.letta.com) (stateful agents).
 
 - **Long-term Memory**: Agents that remember context across sessions.
 - **Stateful Interactions**: Perfect for complex, multi-turn coding tasks.
+
+### 3. Google Gemini CLI Support
+
+Connects to local Gemini CLI wrappers.
+
+- **Access Latest Models**: Use Gemini 1.5 Pro, Flash, and more.
 
 ---
 
 ## 🔌 Setup Guide
 
-To use these new features, simply install the CLI tools you want to use. Dyad will automatically detect them.
+To use these new features, you must install the respective CLI tools.
 
 ### 🛠️ Setting up OpenCode
 
@@ -49,24 +47,32 @@ To use these new features, simply install the CLI tools you want to use. Dyad wi
    opencode --version
    ```
 
-### 🛠️ Setting up Gemini CLI
-
-1. Install the CLI tool:
-   ```bash
-   pip install gemini-cli  # or follow official instructions
-   ```
-2. Authenticate with Google:
-   ```bash
-   gemini auth login
-   ```
-
 ### 🛠️ Setting up Letta
 
-1. Install Letta:
+Letta is the engine behind stateful agents (forked from MemGPT).
+
+1. Install Letta via pip:
    ```bash
    pip install letta
    ```
-2. Start the Letta server or ensure the CLI is accessible.
+2. Verify installation:
+   ```bash
+   letta --version
+   ```
+3. (Optional) Login to Letta Cloud or run a local server:
+   ```bash
+   letta login
+   # OR
+   letta server
+   ```
+
+### 🛠️ Setting up Gemini CLI
+
+**⚠️ Important**: Do not simply run `pip install gemini` as that may install a crypto exchange client.
+
+1. This integration expects a CLI tool named `gemini` that supports Google Generative AI.
+2. If you are using the official Google Cloud SDK, you may need to alias `gcloud ai` or install a specific wrapper.
+3. Ensure the command `gemini` is available in your PATH.
 
 ---
 
